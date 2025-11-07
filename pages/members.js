@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Router from 'next/router';
+import Head from 'next/head';
 import TeamAdminLayout from '../components/Layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { UserPlus, Trash2, AlertCircle } from 'lucide-react';
 
 export default function MembersPage() {
   const [members, setMembers] = useState([]);
@@ -13,25 +22,16 @@ export default function MembersPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
 
-  // --- 1. Fetch all data on load ---
   const fetchData = async () => {
     if (!token) Router.push('/');
     setLoading(true);
-    
     try {
-      // Parallel requests
       const [membersRes, invitesRes] = await Promise.all([
-        axios.get(`${API_URL}/api/team/members/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        axios.get(`${API_URL}/api/team/invites/`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+        axios.get(`${API_URL}/api/team/members/`, { headers: { Authorization: `Bearer ${token}` } }),
+        axios.get(`${API_URL}/api/team/invites/`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
-      
       setMembers(membersRes.data);
       setInvites(invitesRes.data);
-      
     } catch (err) {
       if (err.response && err.response.status === 401) {
         localStorage.clear();
@@ -48,11 +48,9 @@ export default function MembersPage() {
     fetchData();
   }, []);
 
-  // --- 2. Invite a new member ---
   const handleInvite = async (e) => {
     e.preventDefault();
     setError('');
-    
     try {
       await axios.post(`${API_URL}/api/team/invites/`, 
         { email: newInviteEmail },
@@ -60,16 +58,13 @@ export default function MembersPage() {
       );
       setNewInviteEmail('');
       fetchData(); // Refresh lists
-      
     } catch (err) {
       setError(err.response?.data?.email?.[0] || 'Failed to send invite.');
     }
   };
 
-  // --- 3. Remove a member ---
   const handleRemoveMember = async (id) => {
     if (!confirm('Are you sure you want to remove this member?')) return;
-    
     try {
       await axios.delete(`${API_URL}/api/team/members/${id}/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -80,10 +75,8 @@ export default function MembersPage() {
     }
   };
   
-  // --- 4. Revoke an invite ---
   const handleRevokeInvite = async (id) => {
     if (!confirm('Are you sure you want to revoke this invitation?')) return;
-
     try {
       await axios.delete(`${API_URL}/api/team/invites/${id}/`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -96,77 +89,100 @@ export default function MembersPage() {
 
   return (
     <TeamAdminLayout activePage="members">
-      <h1 className="text-3xl font-bold text-neutral-800">
-        Member Management
-      </h1>
+      <Head>
+        <title>Member Management | Team Admin</title>
+      </Head>
       
-      {error && <p className="my-2 text-red-600">{error}</p>}
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold text-foreground">
+          Member Management
+        </h1>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button><UserPlus className="w-4 h-4 mr-2" /> Invite Member</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Invite New Member</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleInvite} className="space-y-4">
+              <div className="grid w-full items-center gap-1.5">
+                <Label htmlFor="email-invite">Email Address</Label>
+                <Input
+                  id="email-invite"
+                  type="email"
+                  value={newInviteEmail}
+                  onChange={(e) => setNewInviteEmail(e.target.value)}
+                  placeholder="new_employee@example.com"
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full">Send Invite</Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {/* --- Invite Form --- */}
-      <form onSubmit={handleInvite} className="p-8 mt-8 bg-white shadow-lg rounded-2xl max-w-lg">
-        <h2 className="text-2xl font-bold text-neutral-800">Invite New Member</h2>
-        <p className="mt-1 text-neutral-600">Enter the email of the member you want to invite.</p>
-        <div className="flex mt-4 space-x-2">
-          <input
-            type="email"
-            value={newInviteEmail}
-            onChange={(e) => setNewInviteEmail(e.target.value)}
-            placeholder="new_employee@example.com"
-            required
-            className="w-full px-4 py-3 text-neutral-800 bg-neutral-100 border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500"
-          />
-          <button
-            type="submit"
-            className="px-6 py-3 font-bold text-white transition-all bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-50"
-          >
-            Send Invite
-          </button>
-        </div>
-      </form>
+      {error && (
+        <Alert variant="destructive" className="mt-4">
+          <AlertCircle className="w-4 h-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
       {/* --- Active Members List --- */}
-      <div className="p-8 mt-8 bg-white shadow-lg rounded-2xl">
-        <h2 className="text-2xl font-bold text-neutral-800">Active Team Members</h2>
-        <div className="mt-4 space-y-3">
-          {loading ? <p>Loading members...</p> : members.length === 0 ? <p>You have no active team members.</p> : null}
-          {members.map(member => (
-            <div key={member.id} className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
-              <div>
-                <p className="font-medium text-neutral-800">{member.username}</p>
-                <p className="text-sm text-neutral-500">{member.email}</p>
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Active Team Members</CardTitle>
+          <CardDescription>Members who have accepted their invite and can use the app.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {loading ? <p className="text-muted-foreground">Loading members...</p> : members.length === 0 ? <p className="text-muted-foreground">You have no active team members.</p> : null}
+            {members.map(member => (
+              <div key={member.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div className="flex items-center space-x-3">
+                  <Avatar>
+                    <AvatarImage src={member.photo_url} />
+                    <AvatarFallback>{member.username.charAt(0).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium text-foreground">{member.username}</p>
+                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                  </div>
+                </div>
+                <Button variant="destructive" size="sm" onClick={() => handleRemoveMember(member.id)}>
+                  <Trash2 className="w-4 h-4" />
+                </Button>
               </div>
-              <button
-                onClick={() => handleRemoveMember(member.id)}
-                className="px-3 py-1 text-sm font-medium text-red-700 bg-red-100 rounded-lg hover:bg-red-200"
-              >
-                Remove
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
       
       {/* --- Pending Invites List --- */}
-      <div className="p-8 mt-8 bg-white shadow-lg rounded-2xl">
-        <h2 className="text-2xl font-bold text-neutral-800">Pending Invitations</h2>
-        <div className="mt-4 space-y-3">
-          {loading ? <p>Loading invites...</p> : invites.length === 0 ? <p>You have no pending invites.</p> : null}
-          {invites.map(invite => (
-            <div key={invite.id} className="flex items-center justify-between p-4 bg-neutral-50 rounded-lg">
-              <div>
-                <p className="font-medium text-neutral-800">{invite.email}</p>
-                <p className="text-sm text-neutral-500">Status: {invite.status}</p>
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle>Pending Invitations</CardTitle>
+          <CardDescription>Invites you have sent that have not been accepted yet.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {loading ? <p className="text-muted-foreground">Loading invites...</p> : invites.length === 0 ? <p className="text-muted-foreground">You have no pending invites.</p> : null}
+            {invites.map(invite => (
+              <div key={invite.id} className="flex items-center justify-between p-4 border rounded-lg">
+                <div>
+                  <p className="font-medium text-foreground">{invite.email}</p>
+                  <p className="text-sm text-muted-foreground">Status: {invite.status}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => handleRevokeInvite(invite.id)}>
+                  Revoke
+                </Button>
               </div>
-              <button
-                onClick={() => handleRevokeInvite(invite.id)}
-                className="px-3 py-1 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
-              >
-                Revoke
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
       
     </TeamAdminLayout>
   );
