@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import Router from 'next/router';
 import Head from 'next/head';
-
-// Import our new shadcn components
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +19,7 @@ export default function LoginPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://workspace-africa-backend.onrender.com';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,22 +32,25 @@ export default function LoginPage() {
         password,
       });
       
-      const { access, refresh } = response.data;
+      const { access, refresh, user_type } = response.data;
+      
+      // Store tokens
       localStorage.setItem('accessToken', access);
       localStorage.setItem('refreshToken', refresh);
-
-      const profileResponse = await axios.get(`${API_URL}/api/users/me/`, {
-        headers: { Authorization: `Bearer ${access}` }
-      });
-
-      if (profileResponse.data.user_type === 'TEAM_ADMIN') {
+      
+      // Check if user is Team Admin
+      if (user_type === 'TEAM_ADMIN') {
         Router.push('/dashboard');
       } else {
         localStorage.clear();
-        setError('You do not have a Team Admin account.');
+        setError('Access denied. This portal is for Team Admins only.');
       }
     } catch (err) {
-      setError('Invalid email or password. Please try again.');
+      if (err.response?.status === 401) {
+        setError('Invalid email or password. Please try again.');
+      } else {
+        setError('Network error. Please check your connection and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -77,7 +78,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="ola@example.com"
+                placeholder="admin@company.com"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -95,13 +96,19 @@ export default function LoginPage() {
             </div>
             
             {error && (
-              <p className="text-xs text-center text-red-600">{error}</p>
+              <p className="text-sm text-center text-red-600 bg-red-50 p-2 rounded">{error}</p>
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
+          
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <p className="text-xs text-center text-muted-foreground">
+              Forgot your password? Contact support to reset it.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

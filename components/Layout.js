@@ -1,8 +1,7 @@
 import React from 'react';
 import Router from 'next/router';
 import Link from 'next/link';
-// Import our new icons
-import { LayoutDashboard, Users, CreditCard, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, BarChart3, Settings, LogOut } from 'lucide-react';
 
 const NavLink = ({ href, children, isActive, icon: Icon }) => (
   <Link href={href} legacyBehavior>
@@ -12,7 +11,7 @@ const NavLink = ({ href, children, isActive, icon: Icon }) => (
         transition-colors
         ${
           isActive
-            ? 'bg-primary text-primary-foreground' // Our Deep Teal!
+            ? 'bg-primary text-primary-foreground'
             : 'text-muted-foreground hover:bg-muted hover:text-foreground'
         }
       `}
@@ -27,7 +26,7 @@ export default function TeamAdminLayout({ children, activePage }) {
 
   const handleLogout = () => {
     localStorage.clear();
-    Router.push('/'); // Go back to the login page
+    Router.push('/');
   };
 
   return (
@@ -57,7 +56,7 @@ export default function TeamAdminLayout({ children, activePage }) {
             isActive={activePage === 'members'} 
             icon={Users}
           >
-            Member Management
+            Members
           </NavLink>
           <NavLink 
             href="/billing" 
@@ -66,13 +65,27 @@ export default function TeamAdminLayout({ children, activePage }) {
           >
             Billing
           </NavLink>
+          <NavLink 
+            href="/analytics" 
+            isActive={activePage === 'analytics'} 
+            icon={BarChart3}
+          >
+            Analytics
+          </NavLink>
+          <NavLink 
+            href="/settings" 
+            isActive={activePage === 'settings'} 
+            icon={Settings}
+          >
+            Settings
+          </NavLink>
         </nav>
 
         {/* Footer / Logout Button */}
         <div className="p-4 border-t">
           <button
             onClick={handleLogout}
-            className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex items-center w-full px-4 py-3 text-sm font-medium rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3" />
             Log Out
