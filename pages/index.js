@@ -66,7 +66,7 @@ export default function LoginPage() {
                 <Briefcase className="w-6 h-6" />
             </div>
             <h1 className="text-2xl font-bold text-[var(--text-main)] uppercase tracking-wider font-mono">Team Admin</h1>
-            <p className="text-[var(--text-muted)] font-mono text-xs mt-2">CORPORATE ACCOUNT MANAGEMENT</p>
+            <p className="text-[var(--text-muted)] font-mono text-xs mt-2">CORPORATE ACCOUNT MANAGEMENT</p><div className="text-center mt-2"><a href="/signup" className="text-[10px] text-[var(--color-primary)] hover:underline">REGISTER ORGANIZATION</a></div>
         </div>
 
         <div className="bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-color)] p-8 relative rounded-sm shadow-xl">
